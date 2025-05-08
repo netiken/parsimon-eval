@@ -29,13 +29,14 @@ use rustc_hash::{FxHashMap,FxHashSet};
 use crate::ns3::Ns3Simulation;
 use crate::ns3link::Ns3Link;
 
-const NS3_DIR: &str = "../../../High-Precision-Congestion-Control/ns-3.39";
+// const NS3_DIR: &str = "../../../High-Precision-Congestion-Control/ns-3.39";
+const NS3_DIR: &str = "../../../High-Precision-Congestion-Control/UNISON-for-ns-3";
 const BASE_RTT: Nanosecs = Nanosecs::new(14_400);
 const DCTCP_GAIN: f64 = 0.0625;
 const DCTCP_AI: Mbps = Mbps::new(615);
 const INIT_START_TIME: Nanosecs = Nanosecs::new(1_000_000_000);
-// const NR_FLOWS: usize = 20_000;
-// const NR_FLOWS: usize = 2_000;
+// const nr_flows: usize = 20_000;
+// const nr_flows: usize = 2_000;
 
 #[derive(Debug, clap::Parser)]
 pub struct Experiment {
@@ -50,7 +51,7 @@ pub struct Experiment {
     #[clap(long)]
     enable_app: bool,
     #[clap(long, default_value_t = 2000)]
-    NR_FLOWS: usize,
+    nr_flows: usize,
 }
 
 impl Experiment {
@@ -341,7 +342,7 @@ impl Experiment {
             .size_dist(size_dist)
             .lognorm_sigma(mix.lognorm_sigma)
             .max_load(mix.max_load)
-            .stop_when(StopWhen::NrFlows(NR_FLOWS))
+            .stop_when(StopWhen::NrFlows(self.nr_flows))
             .seed(self.seed)
             .build();
         let mut flows = flowgen.generate();

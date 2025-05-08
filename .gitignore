@@ -6,6 +6,7 @@
 **/eval_train/
 **/eval_test/
 **/eval_test_trace/
+**/eval_test_unison/
 **/eval_app/
 **/res/
 run_rm.sh

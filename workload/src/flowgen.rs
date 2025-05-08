@@ -115,7 +115,7 @@ impl FlowGenerator {
         let mut flows = Vec::new();
         let mut nr_flows = 0;
         let mut cur = start_time;
-        let mut max_nr_flows;
+        let max_nr_flows;
         let (end, temp_max_nr_flows) = match stop_when {
             StopWhen::Elapsed(duration) => (start_time + duration.into(), usize::MAX),
             StopWhen::NrFlows(temp_max_nr_flows) => (Nanosecs::MAX, temp_max_nr_flows),
