@@ -7,6 +7,8 @@
 **/eval_test/
 **/eval_test_trace/
 **/eval_test_unison/
+**/data_unison/
+**/data_unison_test/
 **/eval_app/
 **/res/
 run_rm.sh
