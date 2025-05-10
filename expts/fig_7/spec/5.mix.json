@@ -1,4 +1,5 @@
-{
+[
+    {
     "id": 5,
     "spatial": "../../workload/spatials/cluster_b_12k.json",
     "size_dist": "../../workload/distributions/facebook/cachefollower-all.txt",
@@ -13,4 +14,5 @@
     "cc": "dctcp",
     "param_1": 20.0,
     "param_2": 0.0
-}
+    }
+]

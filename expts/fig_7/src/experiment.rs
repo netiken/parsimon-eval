@@ -1,6 +1,5 @@
 use std::{
     fmt, fs,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
     path::{Path, PathBuf},
     time::Instant,
 };
@@ -30,38 +29,71 @@ use rustc_hash::{FxHashMap,FxHashSet};
 use crate::ns3::Ns3Simulation;
 use crate::ns3link::Ns3Link;
 
+use rayon::prelude::*;
+
 // const NS3_DIR: &str = "../../../High-Precision-Congestion-Control/ns-3.39";
 const NS3_DIR: &str = "../../../High-Precision-Congestion-Control/UNISON-for-ns-3";
 const BASE_RTT: Nanosecs = Nanosecs::new(14_400);
 const DCTCP_GAIN: f64 = 0.0625;
 const DCTCP_AI: Mbps = Mbps::new(615);
-const NR_FLOWS: usize = 50_000;
+const NR_FLOWS: usize = 40_000;
 
 #[derive(Debug, clap::Parser)]
 pub struct Experiment {
     #[clap(long, default_value = "./data")]
     root: PathBuf,
     #[clap(long)]
-    mix: PathBuf,
+    mixes: PathBuf,
     #[clap(long, default_value_t = 0)]
     seed: u64,
-    #[clap(short, long, default_values_t = vec![SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080)])]
-    workers: Vec<SocketAddr>,
     #[clap(subcommand)]
     sim: SimKind,
 }
 
 impl Experiment {
     pub fn run(&self) -> anyhow::Result<()> {
-        let mix: Mix = serde_json::from_str(&fs::read_to_string(&self.mix)?)?;
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(4)
+            .build_global()
+            .unwrap();
+
+        let mixes: Vec<Mix> = serde_json::from_str(&fs::read_to_string(&self.mixes)?)?;
         match self.sim {
-            SimKind::Ns3 => self.run_ns3(&mix, false),
-            SimKind::Mlsys => self.run_ns3(&mix, true),
-            SimKind::Pmn => self.run_pmn(&mix),
-            SimKind::PmnM => self.run_pmn_m(&mix),
-            SimKind::PmnMC => self.run_pmn_mc(&mix),
+            // SimKind::Ns3 => {
+            //     for mix in &mixes {
+            //         self.run_ns3(mix, false)?;
+            //     }
+            // }
+
+            SimKind::Ns3 => {
+                mixes.par_iter().try_for_each(|mix| self.run_ns3(mix, false))?; 
+            }
+            
+            SimKind::Mlsys => {
+                for mix in &mixes {
+                    self.run_ns3(mix, true)?;
+                }
+            }
+
+            SimKind::Pmn => {
+                for mix in &mixes {
+                    self.run_pmn(mix)?;
+                }
+            }
+            SimKind::PmnM => {
+                for mix in &mixes {
+                    self.run_pmn_m(mix)?;
+                }
+            }
+
+            SimKind::PmnMC => {
+                for mix in &mixes {
+                    self.run_pmn_mc(mix)?;
+                }
+            }
             
         }
+        Ok(())
     }
 
     fn run_ns3(&self, mix: &Mix, enable_mlsys: bool) -> anyhow::Result<()> {

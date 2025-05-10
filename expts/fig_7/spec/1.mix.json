@@ -1,4 +1,5 @@
-{
+[
+    {
     "id": 1,
     "spatial": "../../workload/spatials/cluster_b.json",
     "size_dist": "../../workload/distributions/facebook/webserver-all.txt",
@@ -13,4 +14,5 @@
     "cc": "dctcp",
     "param_1": 20.0,
     "param_2": 0.0
-}
+    }
+]

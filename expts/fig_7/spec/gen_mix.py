@@ -13,14 +13,14 @@ def fix_seed(seed):
 def generate_config_list(output_file, num_configs):
     # Define ranges and lists
     spatials = [
-        "../../workload/spatials/cluster_a.json",
+        "../../workload/spatials/cluster_a_upsample.json",
         "../../workload/spatials/cluster_b.json",
-        "../../workload/spatials/cluster_c.json",
+        "../../workload/spatials/cluster_c_upsample.json",
     ]
     clusters = [
-        "spec/cluster_b_1_to_1.json",
-        "spec/cluster_b_2_to_1.json",
-        "spec/cluster_b_4_to_1.json",
+        "../../workload/topologies/cluster_b_1_to_1.json",
+        "../../workload/topologies/cluster_b_2_to_1.json",
+        "../../workload/topologies/cluster_b_4_to_1.json",
     ]
 
     size_dists = [
@@ -87,6 +87,7 @@ def generate_config_list(output_file, num_configs):
             "lognorm_sigma": lognorm_sigma,
             "max_load": max_load,
             "cluster": cluster,
+            "duration": 1,
             "param_id": 0,
             "bfsz": bfsz,
             "window": int(window),
@@ -111,7 +112,7 @@ if __name__ == "__main__":
 
     # Specify the output JSON file and parameters
 
-    num_configs = 100
+    num_configs = 5
     output_file = "eval_test.mix.json"
     
 
