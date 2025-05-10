@@ -4,6 +4,7 @@
 **/__pycache__/
 **/deprecated/
 **/eval_train/
+**/eval_train_unison/
 **/eval_test/
 **/eval_test_trace/
 **/eval_test_unison/
