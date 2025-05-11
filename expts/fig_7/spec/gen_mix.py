@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
     # Specify the output JSON file and parameters
 
-    num_configs = 5
+    num_configs = 50
     output_file = "eval_test.mix.json"
     
 
