@@ -120,7 +120,7 @@ impl Ns3Simulation {
         let cc = self.cc_kind.as_str();
         let param_1 = self.param_1;
         let param_2 = self.param_2;
-        let enable_tr = 1;
+        let enable_tr = 0;
         let max_inflight_flows = self.max_inflight_flows;
         let n_clients_per_rack_for_closed_loop = 16;
         let command_sim = format!(

@@ -13,6 +13,7 @@
 **/eval_app/
 **/res/
 run_rm.sh
+gen_mix_test.py
 workload/spatials/cluster_b_60k.json
 workload/spatials/cluster_b_48k.json
 workload/spatials/cluster_b_36k.json
