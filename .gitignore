@@ -1,6 +1,6 @@
 **/target/
 **/data/
-**/data_50k/
+**/data_large/
 **/__pycache__/
 **/deprecated/
 **/eval_train/
@@ -8,6 +8,7 @@
 **/eval_test/
 **/eval_test_trace/
 **/eval_test_unison/
+**/eval_test_ns3/
 **/data_unison/
 **/data_unison_test/
 **/eval_app/
