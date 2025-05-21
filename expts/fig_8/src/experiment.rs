@@ -62,6 +62,10 @@ impl Experiment {
         // parallel, so they'll run one at a time to save memory.
         match self.sim {
             SimKind::Ns3 => {
+                rayon::ThreadPoolBuilder::new()
+                .num_threads(2)
+                .build_global()
+                .unwrap();
                 mixes.par_iter().try_for_each(|mix| self.run_ns3(mix, false))?; 
             }
            

@@ -53,7 +53,7 @@ pub struct Experiment {
 impl Experiment {
     pub fn run(&self) -> anyhow::Result<()> {
         rayon::ThreadPoolBuilder::new()
-            .num_threads(10)
+            .num_threads(1)
             .build_global()
             .unwrap();
 

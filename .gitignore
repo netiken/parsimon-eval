@@ -1,6 +1,7 @@
 **/target/
 **/data/
 **/data_large/
+**/data_large_ns3/
 **/__pycache__/
 **/deprecated/
 **/eval_train/
