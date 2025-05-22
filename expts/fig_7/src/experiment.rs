@@ -59,12 +59,6 @@ impl Experiment {
 
         let mixes: Vec<Mix> = serde_json::from_str(&fs::read_to_string(&self.mixes)?)?;
         match self.sim {
-            // SimKind::Ns3 => {
-            //     for mix in &mixes {
-            //         self.run_ns3(mix, false)?;
-            //     }
-            // }
-
             SimKind::Ns3 => {
                 mixes.par_iter().try_for_each(|mix| self.run_ns3(mix, false))?; 
             }
@@ -355,8 +349,13 @@ impl Experiment {
             .size_dist(size_dist)
             .lognorm_sigma(mix.lognorm_sigma)
             .max_load(mix.max_load)
-            .stop_when(StopWhen::Elapsed(mix.duration))
-            // .stop_when(StopWhen::NrFlows(NR_FLOWS))
+            .stop_when(if mix.duration > 5 {
+                println!("Stopping when {} flows are generated", NR_FLOWS);
+                StopWhen::NrFlows(NR_FLOWS)
+            } else {
+                println!("Stopping when {} seconds are elapsed", mix.duration);
+                StopWhen::Elapsed(mix.duration)
+            })
             .seed(self.seed)
             .build();
         let flows = flowgen.generate();
