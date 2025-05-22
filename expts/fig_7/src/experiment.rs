@@ -8,7 +8,7 @@ use anyhow::Ok;
 use parsimon::core::{
     network::{Flow, FlowId, Network, NodeId},
     opts::SimOpts,
-    units::{Bytes, Mbps, Nanosecs},
+    units::{Bytes, Mbps, Nanosecs, Secs},
 };
 use parsimon::impls::clustering::{
     self,
@@ -37,6 +37,7 @@ const BASE_RTT: Nanosecs = Nanosecs::new(14_400);
 const DCTCP_GAIN: f64 = 0.0625;
 const DCTCP_AI: Mbps = Mbps::new(615);
 const NR_FLOWS: usize = 50_000;
+const DURATION_CUTOFF: Secs = Secs::new(5);
 
 #[derive(Debug, clap::Parser)]
 pub struct Experiment {
@@ -349,7 +350,7 @@ impl Experiment {
             .size_dist(size_dist)
             .lognorm_sigma(mix.lognorm_sigma)
             .max_load(mix.max_load)
-            .stop_when(if mix.duration > 5 {
+            .stop_when(if mix.duration > DURATION_CUTOFF {
                 println!("Stopping when {} flows are generated", NR_FLOWS);
                 StopWhen::NrFlows(NR_FLOWS)
             } else {
