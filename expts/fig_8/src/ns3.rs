@@ -64,6 +64,9 @@ pub struct Ns3Simulation {
     /// Enable MLSYS
     #[builder(default = false)]
     pub enable_mlsys: bool,
+    /// Enable TRACE
+    #[builder(default = 0)]
+    pub enable_tr: u32,
 }
 
 impl Ns3Simulation {
@@ -120,7 +123,7 @@ impl Ns3Simulation {
         let cc = self.cc_kind.as_str();
         let param_1 = self.param_1;
         let param_2 = self.param_2;
-        let enable_tr = 0;
+        let enable_tr = self.enable_tr;
         let max_inflight_flows = self.max_inflight_flows;
         let n_clients_per_rack_for_closed_loop = 16;
         let command_sim = format!(

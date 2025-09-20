@@ -6,16 +6,8 @@ use std::{
 
 use parsimon::core::{
     network::{Flow, FlowId, Network, NodeId},
-    opts::SimOpts,
-    units::{Bytes, Mbps, Nanosecs},
+    units::{Bytes, Nanosecs},
 };
-use parsimon::impls::clustering::{
-    self,
-    feature::{self, DistsAndLoad},
-    greedy::GreedyClustering,
-};
-use parsimon::impls::linksim::minim::MinimLink;
-use rand::prelude::*;
 use rayon::prelude::*;
 use workload::{
     fabric::Cluster,
@@ -27,12 +19,8 @@ use crate::mix::{Mix, MixId};
 
 use rustc_hash::{FxHashMap,FxHashSet};
 use crate::ns3::Ns3Simulation;
-use crate::ns3link::Ns3Link;
 
-const NS3_DIR: &str = "../../../High-Precision-Congestion-Control/UNISON-for-ns-3";
 const BASE_RTT: Nanosecs = Nanosecs::new(14_400);
-const DCTCP_GAIN: f64 = 0.0625;
-const DCTCP_AI: Mbps = Mbps::new(615);
 const INIT_START_TIME: Nanosecs = Nanosecs::new(1_000_000_000);
 
 #[derive(Debug, clap::Parser)]
@@ -49,6 +37,8 @@ pub struct Experiment {
     enable_app: bool,
     #[clap(long, default_value_t = 2000)]
     nr_flows: usize,
+    #[clap(long, default_value_t = false)]
+    enable_train: bool,
 }
 
 impl Experiment {
@@ -72,23 +62,6 @@ impl Experiment {
                 }
             }
             
-            SimKind::Pmn => {
-                for mix in &mixes {
-                    self.run_pmn(mix)?;
-                }
-            }
-            SimKind::PmnM => {
-                for mix in &mixes {
-                    self.run_pmn_m(mix)?;
-                }
-            }
-           
-            SimKind::PmnMC => {
-                for mix in &mixes {
-                    self.run_pmn_mc(mix)?;
-                }
-            }
-            
         }
         Ok(())
     }
@@ -97,7 +70,14 @@ impl Experiment {
         let sim = SimKind::Ns3;
         let cluster: Cluster = serde_json::from_str(&fs::read_to_string(&mix.cluster)?)?;
         let flows = self.flows(mix)?;
-        
+        let mut enable_tr = 0;
+        let ns3_dir = if self.enable_train {
+            enable_tr = 1;
+            "../../../High-Precision-Congestion-Control/ns-3.39"
+        } else {
+            "../../../High-Precision-Congestion-Control/UNISON-for-ns-3"
+        };
+
         // let start_read = Instant::now(); // timer start
         // construct SimNetwork
         let nodes = cluster.nodes().cloned().collect::<Vec<_>>();
@@ -154,7 +134,7 @@ impl Experiment {
 
         let start = Instant::now(); // timer start
         let ns3 = Ns3Simulation::builder()
-            .ns3_dir(NS3_DIR)
+            .ns3_dir(ns3_dir)
             .data_dir(self.sim_dir(mix, sim)?)
             .nodes(cluster.nodes().cloned().collect::<Vec<_>>())
             .links(cluster.links().cloned().collect::<Vec<_>>())
@@ -164,6 +144,7 @@ impl Experiment {
             .bfsz(mix.bfsz)
             .window(Bytes::new(mix.window))
             .enable_pfc(mix.enable_pfc)
+            .enable_tr(enable_tr)
             .cc_kind(mix.cc)
             .param_1(mix.param_1)
             .param_2(mix.param_2)
@@ -183,142 +164,6 @@ impl Experiment {
             .collect::<Vec<_>>();
         self.put_records(mix, sim, &records)?;
 
-        let elapsed_secs = start.elapsed().as_secs(); // timer end
-        self.put_elapsed(mix, sim, elapsed_secs)?;
-        Ok(())
-    }
-
-    fn run_pmn(&self, mix: &Mix) -> anyhow::Result<()> {
-        let sim = SimKind::Pmn;
-        let cluster: Cluster = serde_json::from_str(&fs::read_to_string(&mix.cluster)?)?;
-        let flows = self.flows(mix)?;
-
-        let start = Instant::now(); // timer start
-        let nodes = cluster.nodes().cloned().collect::<Vec<_>>();
-        let links = cluster.links().cloned().collect::<Vec<_>>();
-        
-        let network = Network::new(&nodes, &links)?;
-        let network = network.into_simulations(flows.clone());
-        let loads = network.link_loads().collect::<Vec<_>>();
-        let linksim = Ns3Link::builder()
-            .root_dir(self.sim_dir(mix, sim)?)
-            .ns3_dir(NS3_DIR)
-            // .window(WINDOW)
-            .base_rtt(BASE_RTT)
-            .bfsz(mix.bfsz)
-            .window(Bytes::new(mix.window))
-            .enable_pfc(mix.enable_pfc)
-            .cc_kind(mix.cc)
-            .param_1(mix.param_1)
-            .param_2(mix.param_2)
-            .build();
-        let sim_opts = SimOpts::builder().link_sim(linksim).build();
-        let network = network.into_delays(sim_opts)?;
-        let mut rng = StdRng::seed_from_u64(self.seed);
-        let records: Vec<_> = flows
-            .iter()
-            .filter_map(|f| {
-                network
-                    .slowdown(f.size, (f.src, f.dst), &mut rng)
-                    .map(|slowdown| Record {
-                        mix_id: mix.id,
-                        flow_id: f.id,
-                        size: f.size,
-                        slowdown,
-                        sim,
-                    })
-            })
-            .collect();
-        self.put_records(mix, sim, &records)?;
-        self.put_loads(mix, sim, &loads)?;
-        let elapsed_secs = start.elapsed().as_secs(); // timer end
-        self.put_elapsed(mix, sim, elapsed_secs)?;
-        println!("{}: {}", mix.id, elapsed_secs);
-        Ok(())
-    }
-
-    fn run_pmn_m(&self, mix: &Mix) -> anyhow::Result<()> {
-        let sim = SimKind::PmnM;
-        let cluster: Cluster = serde_json::from_str(&fs::read_to_string(&mix.cluster)?)?;
-        let flows = self.flows(mix)?;
-
-        let start = Instant::now(); // timer start
-        let nodes = cluster.nodes().cloned().collect::<Vec<_>>();
-        let links = cluster.links().cloned().collect::<Vec<_>>();
-        let network = Network::new(&nodes, &links)?;
-        let network = network.into_simulations(flows.clone());
-        let loads = network.link_loads().collect::<Vec<_>>();
-        let linksim = MinimLink::builder()
-            // .window(WINDOW)
-            .dctcp_gain(DCTCP_GAIN)
-            .dctcp_ai(DCTCP_AI)
-            .window(Bytes::new(mix.window))
-            .dctcp_k(mix.param_1)
-            .build();
-        let sim_opts = SimOpts::builder().link_sim(linksim).build();
-        let network = network.into_delays(sim_opts)?;
-        let mut rng = StdRng::seed_from_u64(self.seed);
-        let records: Vec<_> = flows
-            .iter()
-            .filter_map(|f| {
-                network
-                    .slowdown(f.size, (f.src, f.dst), &mut rng)
-                    .map(|slowdown| Record {
-                        mix_id: mix.id,
-                        flow_id: f.id,
-                        size: f.size,
-                        slowdown,
-                        sim,
-                    })
-            })
-            .collect();
-        self.put_loads(mix, sim, &loads)?;
-        self.put_records(mix, sim, &records)?;
-        let elapsed_secs = start.elapsed().as_secs(); // timer end
-        self.put_elapsed(mix, sim, elapsed_secs)?;
-        Ok(())
-    }
-
-    fn run_pmn_mc(&self, mix: &Mix) -> anyhow::Result<()> {
-        let sim = SimKind::PmnMC;
-        let cluster: Cluster = serde_json::from_str(&fs::read_to_string(&mix.cluster)?)?;
-        let flows = self.flows(mix)?;
-        let nodes = cluster.nodes().cloned().collect::<Vec<_>>();
-        let links = cluster.links().cloned().collect::<Vec<_>>();
-        let start = Instant::now(); // timer start
-        let network = Network::new(&nodes, &links)?;
-        let mut network = network.into_simulations(flows.clone());
-        let loads = network.link_loads().collect::<Vec<_>>();
-        let clusterer = GreedyClustering::new(feature::dists_and_load, is_close_enough);
-        network.cluster(&clusterer);
-        let nr_clusters = network.clusters().len();
-        let frac = nr_clusters as f64 / (links.len() * 2) as f64;
-        let linksim = MinimLink::builder()
-            // .window(WINDOW)
-            .window(Bytes::new(mix.window))
-            .dctcp_gain(DCTCP_GAIN)
-            .dctcp_ai(DCTCP_AI)
-            .build();
-        let sim_opts = SimOpts::builder().link_sim(linksim).build();
-        let network = network.into_delays(sim_opts)?;
-        let mut rng = StdRng::seed_from_u64(self.seed);
-        let records: Vec<_> = flows
-            .iter()
-            .filter_map(|f| {
-                network
-                    .slowdown(f.size, (f.src, f.dst), &mut rng)
-                    .map(|slowdown| Record {
-                        mix_id: mix.id,
-                        flow_id: f.id,
-                        size: f.size,
-                        slowdown,
-                        sim,
-                    })
-            })
-            .collect();
-        self.put_loads(mix, sim, &loads)?;
-        self.put_clustering(mix, sim, frac)?;
-        self.put_records(mix, sim, &records)?;
         let elapsed_secs = start.elapsed().as_secs(); // timer end
         self.put_elapsed(mix, sim, elapsed_secs)?;
         Ok(())
@@ -385,17 +230,6 @@ impl Experiment {
         Ok(())
     }
 
-    fn put_clustering(&self, mix: &Mix, sim: SimKind, frac: f64) -> anyhow::Result<()> {
-        fs::write(self.clustering_file(mix, sim)?, frac.to_string())?;
-        Ok(())
-    }
-
-    fn put_loads(&self, mix: &Mix, sim: SimKind, loads: &[f64]) -> anyhow::Result<()> {
-        let s = serde_json::to_string(&loads)?;
-        fs::write(self.load_file(mix, sim)?, s)?;
-        Ok(())
-    }
-
     fn mix_dir(&self, mix: &Mix) -> anyhow::Result<PathBuf> {
         let dir = [self.root.as_path(), mix.id.to_string().as_ref()]
             .into_iter()
@@ -448,44 +282,11 @@ impl Experiment {
         Ok(file)
     }
 
-    fn clustering_file(&self, mix: &Mix, sim: SimKind) -> anyhow::Result<PathBuf> {
-        let file = [self.sim_dir(mix, sim)?.as_path(), "clustering.txt".as_ref()]
-            .into_iter()
-            .collect();
-        Ok(file)
-    }
-
-    fn load_file(&self, mix: &Mix, sim: SimKind) -> anyhow::Result<PathBuf> {
-        let file = [self.sim_dir(mix, sim)?.as_path(), "loads.json".as_ref()]
-            .into_iter()
-            .collect();
-        Ok(file)
-    }
-}
-
-fn is_close_enough(a: &Option<DistsAndLoad>, b: &Option<DistsAndLoad>) -> bool {
-    match (a, b) {
-        (None, None) => true,
-        (None, Some(_)) => false,
-        (Some(_), None) => false,
-        (Some(feat1), Some(feat2)) => {
-            let sz_wmape = clustering::utils::wmape(&feat1.sizes, &feat2.sizes);
-            let arr_wmape = clustering::utils::wmape(&feat1.deltas, &feat2.deltas);
-            let max_wmape = std::cmp::max_by(sz_wmape, arr_wmape, |x, y| {
-                x.partial_cmp(y)
-                    .expect("`max_wmape_xs`: failed to compare floats")
-            });
-            (max_wmape < 0.1) && ((feat1.load - feat2.load).abs() < 0.005)
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, clap::Subcommand, serde::Serialize, serde::Deserialize)]
 pub enum SimKind {
     Ns3,
-    Pmn,
-    PmnM,
-    PmnMC,
     Mlsys,
 }
 
@@ -493,9 +294,6 @@ impl fmt::Display for SimKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             SimKind::Ns3 => "ns3",
-            SimKind::Pmn => "pmn",
-            SimKind::PmnM => "pmn-m",
-            SimKind::PmnMC => "pmn-mc",
             SimKind::Mlsys => "mlsys",
         };
         write!(f, "{}", s)
