@@ -1,0 +1,4 @@
+calling convert, opening /data1/lichenni/m4/parsimon-eval/expts/fig_8/eval_train_unison/15/ns3
+opened
+<_io.TextIOWrapper name='/data1/lichenni/m4/parsimon-eval/expts/fig_8/eval_train_unison/15/ns3/path_1.txt' mode='r' encoding='UTF-8'>
+writing to /data1/lichenni/m4/parsimon-eval/expts/fig_8/eval_train_unison/15/ns3
