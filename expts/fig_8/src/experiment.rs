@@ -29,14 +29,11 @@ use rustc_hash::{FxHashMap,FxHashSet};
 use crate::ns3::Ns3Simulation;
 use crate::ns3link::Ns3Link;
 
-// const NS3_DIR: &str = "../../../High-Precision-Congestion-Control/ns-3.39";
 const NS3_DIR: &str = "../../../High-Precision-Congestion-Control/UNISON-for-ns-3";
 const BASE_RTT: Nanosecs = Nanosecs::new(14_400);
 const DCTCP_GAIN: f64 = 0.0625;
 const DCTCP_AI: Mbps = Mbps::new(615);
 const INIT_START_TIME: Nanosecs = Nanosecs::new(1_000_000_000);
-// const nr_flows: usize = 20_000;
-// const nr_flows: usize = 2_000;
 
 #[derive(Debug, clap::Parser)]
 pub struct Experiment {
