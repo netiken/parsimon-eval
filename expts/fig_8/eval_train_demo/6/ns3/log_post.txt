@@ -1,0 +1,3 @@
+fsize: 2000, fat: 2000
+(2000, 7)
+n_flow_event: 4000, 66 busy periods, flow_size_threshold: inf, n_flows_unique: 2000 , n_flows_per_period_est: 1, 30.303030303030305, 1923
