@@ -161,7 +161,7 @@ impl Ns3Simulation {
         );
         
         let command_m4 = format!(
-            "../../../flowsim/build/no_flowsim {data_dir} /data1/lichenni/projects/per-flow-sim/config/test_config_lstm_topo_eval.yaml {data_dir}/m4_fct.npy"
+            "../../../inference/build/no_flowsim {data_dir} /data1/lichenni/m4/config/test_config.yaml {data_dir}/m4_fct.npy 0"
         ); 
         // println!("{command_sim}");
         // Execute the command in a child process.
